@@ -43,8 +43,12 @@ export function createCache(options: EmbedCacheOptions): EmbedCache {
       }
 
       const results: number[][] = new Array(texts.length)
-      const missIndices: number[] = []
-      const missTexts: string[] = []
+      // Maps each input index to a slot in the deduplicated miss array
+      const missSlotByIndex: number[] = new Array(texts.length)
+      // Deduplicated miss texts and their cache keys (keyed by cache key)
+      const missKeyToSlot = new Map<string, number>()
+      const uniqueMissTexts: string[] = []
+      const uniqueMissKeys: string[] = []
 
       for (let i = 0; i < texts.length; i++) {
         const key = getKey(texts[i])
@@ -53,18 +57,31 @@ export function createCache(options: EmbedCacheOptions): EmbedCache {
           results[i] = cached
           statsTracker.recordHit(estimateTokens(texts[i]))
         } else {
-          missIndices.push(i)
-          missTexts.push(texts[i])
           statsTracker.recordMiss()
+          if (missKeyToSlot.has(key)) {
+            // Duplicate miss within this batch: reuse the same deduplicated slot
+            missSlotByIndex[i] = missKeyToSlot.get(key)!
+          } else {
+            const slot = uniqueMissTexts.length
+            missKeyToSlot.set(key, slot)
+            missSlotByIndex[i] = slot
+            uniqueMissTexts.push(texts[i])
+            uniqueMissKeys.push(key)
+          }
         }
       }
 
-      if (missTexts.length > 0) {
-        const newVectors = await options.embedder(missTexts)
-        for (let j = 0; j < missIndices.length; j++) {
-          const i = missIndices[j]
-          store.set(getKey(texts[i]), newVectors[j], { ttl: embedOptions?.ttl ?? options.ttl })
-          results[i] = store.get(getKey(texts[i])) ?? newVectors[j]
+      if (uniqueMissTexts.length > 0) {
+        const newVectors = await options.embedder(uniqueMissTexts)
+        for (let slot = 0; slot < uniqueMissTexts.length; slot++) {
+          store.set(uniqueMissKeys[slot], newVectors[slot], { ttl: embedOptions?.ttl ?? options.ttl })
+        }
+        for (let i = 0; i < texts.length; i++) {
+          if (results[i] === undefined) {
+            const slot = missSlotByIndex[i]
+            const key = uniqueMissKeys[slot]
+            results[i] = store.get(key) ?? newVectors[slot]
+          }
         }
       }
 
