@@ -3,6 +3,7 @@
 Content-addressable embedding cache with deduplication, LRU eviction, TTL support, and batch optimization. Zero external runtime dependencies -- caller supplies the embedder function.
 
 [![npm version](https://img.shields.io/npm/v/embed-cache.svg)](https://www.npmjs.com/package/embed-cache)
+[![npm downloads](https://img.shields.io/npm/dt/embed-cache.svg)](https://www.npmjs.com/package/embed-cache)
 [![license](https://img.shields.io/npm/l/embed-cache.svg)](https://github.com/SiluPanda/embed-cache/blob/master/LICENSE)
 [![node](https://img.shields.io/node/v/embed-cache.svg)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue.svg)](https://www.typescriptlang.org/)
