@@ -1,6 +1,6 @@
 {
   "name": "embed-cache",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Content-addressable embedding cache with deduplication and TTL",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

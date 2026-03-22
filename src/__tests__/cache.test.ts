@@ -74,6 +74,22 @@ describe('embedBatch()', () => {
     expect(callCount()).toBe(2)
   })
 
+  it('deduplicates repeated miss texts within a single batch: embedder called with distinct texts only', async () => {
+    const calls: string[][] = []
+    const embedder: EmbedderFn = async (texts) => {
+      calls.push([...texts])
+      return texts.map((t) => [t.length])
+    }
+    const cache = createCache({ embedder, model: 'test-model' })
+    // 'new' appears at indices 0 and 2 — both are cache misses but should only be embedded once
+    const results = await cache.embedBatch(['new', 'other', 'new'])
+    expect(calls.length).toBe(1)
+    expect(calls[0]).toEqual(['new', 'other'])
+    // results for the two 'new' entries should be identical
+    expect(results[0]).toEqual(results[2])
+    expect(results[1]).toEqual([5]) // 'other'.length === 5
+  })
+
   it('returns vectors in correct order', async () => {
     const embedder: EmbedderFn = async (texts) => texts.map((t) => [t.length])
     const cache = createCache({ embedder, model: 'test-model' })
